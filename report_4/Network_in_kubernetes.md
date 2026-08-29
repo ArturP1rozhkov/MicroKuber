@@ -1,12 +1,4 @@
----
-type: Курс по DevOPS Home Work
-module: Kubernetes
-lesson_no: 4
-lesson_theme: Сетевое взаимодействие в Kubernetes
----
-> [!bookmark]
->
-> **Домашнее задание: <%+ tp.file.title %>**
+
 
 # Домашнее задание к занятию «Сетевое взаимодействие в Kubernetes»
 
@@ -571,18 +563,3 @@ curl http://158.160.209.10:32062/api
 
 Путь `/` отдаёт nginx, а `/api` теперь корректно доходит до multitool через `stripPrefix`. В двух разных запросах ответили разные Pod backend (`7cmws` и `zt2b7`), что подтверждает балансировку между репликами.
 
-
-
-
-
-
-
-
-
-
-
-
-> [!calendar] Дата
-> **Добавлено:** 2026-08-28  14:12
-> **Изменено: **<%+ tp.file.last_modified_date("YYYY-MM-DD HH:mm") %>
-> **Тема задания:** <%+ tp.file.title %>
