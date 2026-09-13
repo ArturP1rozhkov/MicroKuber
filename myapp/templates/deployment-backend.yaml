@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "myapp.fullname" . }}-backend
+  labels:
+    app: {{ include "myapp.fullname" . }}-backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "myapp.fullname" . }}-backend
+  template:
+    metadata:
+      labels:
+        app: {{ include "myapp.fullname" . }}-backend
+    spec:
+      containers:
+      - name: backend
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.backend.containerPort }}
+        env:
+        - name: HTTP_PORT
+          value: {{ .Values.backend.containerPort | quote }}
