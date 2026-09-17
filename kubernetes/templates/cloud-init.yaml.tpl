@@ -12,7 +12,6 @@ write_files:
       overlay
       br_netfilter
 
-
   - path: /etc/sysctl.d/k8s.conf
     content: |
       net.bridge.bridge-nf-call-iptables  = 1
@@ -23,16 +22,15 @@ runcmd:
 %{ for name, ip in node_map ~}
   - echo "${ip} ${name}" >> /etc/hosts
 %{ endfor ~}
-
   - swapoff -a
   - sed -i '/ swap / s/^/#/' /etc/fstab
   - modprobe overlay
   - modprobe br_netfilter
   - sysctl --system
 %{ if role == "master" ~}
-  - iptables -t nat -A POSTROUTING ! -d 10.10.0.0/16 -j MASQUERADE
+  - iptables -t nat -A POSTROUTING -o eth0 ! -d 10.10.0.0/16 -j MASQUERADE
 %{ endif ~}
-  - until apt-get update; do echo "waiting for network (NAT via master)..."; sleep 10; done
+  - sh -c 'for i in $(seq 1 60); do curl -fsS --max-time 5 -o /dev/null https://mirror.yandex.ru && exit 0; sleep 10; done; exit 1'
   - DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
   - DEBIAN_FRONTEND=noninteractive apt-get install -y containerd apt-transport-https ca-certificates curl gpg
   - mkdir -p /etc/containerd

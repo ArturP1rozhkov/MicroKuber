@@ -1,30 +1,61 @@
 #!/usr/bin/env bash
+# validate-cloud-init.sh — проверка user-data, извлечённого ИЗ ПЛАНА (tfplan).
+#
+# Принцип: terraform show -json tfplan — единственный источник истины.
+# Мы проверяем ровно то, что будет реально применено при terraform apply,
+# а не отдельную ручную ре-рендер-копию шаблона. Это убирает целый класс
+# проблем с экранированием вывода terraform console.
+#
+# Требование: свежий tfplan (terraform plan -out=tfplan).
+
 set -euo pipefail
 
-# Общая карта нод — должна совпадать с instances.tf
-NODES='{"master-1"="10.10.1.10","worker-1"="10.10.2.11","worker-2"="10.10.2.12","worker-3"="10.10.2.13","worker-4"="10.10.2.14"}'
+if [ ! -f tfplan ]; then
+  echo "tfplan не найден. Сначала: export YC_TOKEN=\$(yc iam create-token) && terraform plan -out=tfplan"
+  exit 1
+fi
 
-render() {
-  local host="$1" role="$2" out="$3"
-  echo "jsonencode(templatefile(\"templates/cloud-init.yaml.tpl\", {hostname=\"$host\", role=\"$role\", k8s_minor=\"v1.34\", node_map=$NODES}))" \
-    | terraform console | tail -n 1 \
-    | python3 -c 'import json,sys; sys.stdout.write(json.loads(sys.stdin.read()))' \
-    > "$out"
-  echo "Рендер: $out"
-}
+# Убираем слепки прошлых прогонов
+rm -f rendered-*.yaml
 
-render master-1 master rendered-master.yaml
-render worker-1 worker rendered-worker.yaml
+# План в JSON — во временном файле, чтобы не мусорить в каталоге
+terraform show -json tfplan > /tmp/tfplan.json
 
-# 1. Чистый YAML-парсинг обеих версий
-for f in rendered-master.yaml rendered-worker.yaml; do
-  python3 -c "import yaml; yaml.safe_load(open('$f')); print('YAML OK: $f')"
+python3 - <<'PYEOF'
+import json, sys, yaml
+
+plan = json.load(open('/tmp/tfplan.json'))
+resources = plan['planned_values']['root_module']['resources']
+
+rendered = []
+for res in resources:
+    if res['type'] != 'yandex_compute_instance':
+        continue
+    hostname = res['values']['hostname']
+    user_data = res['values']['metadata']['user-data']
+    fn = f'rendered-{hostname}.yaml'
+    with open(fn, 'w') as fh:
+        fh.write(user_data)
+    rendered.append(fn)
+    print(f'Рендер из плана: {fn}')
+
+if not rendered:
+    sys.exit('В плане не найдено yandex_compute_instance — tfplan устарел или пуст')
+
+# Проверки каждого слепка
+for fn in rendered:
+    first = open(fn).readline().rstrip('\n')
+    assert first == '#cloud-config', f'{fn}: первая строка {first!r}, ожидалась #cloud-config'
+    data = yaml.safe_load(open(fn))
+    assert isinstance(data, dict), f'{fn}: YAML-документ не является словарём — рендер сломан'
+    print(f'YAML OK (маппинг, ключи: {", ".join(sorted(data))}): {fn}')
+
+print(f'Всего отрендерено нод: {len(rendered)}')
+PYEOF
+
+# Схема cloud-init для каждой ноды
+for f in rendered-*.yaml; do
+  sudo cloud-init schema -c "$f" --annotate
 done
 
-# 2. Схема cloud-init (если cloud-init установлен на рабочей машине)
-if command -v cloud-init >/dev/null; then
-  cloud-init schema -c rendered-master.yaml --annotate
-  cloud-init schema -c rendered-worker.yaml --annotate
-else
-  echo "cloud-init не установлен — проверка схемы пропущена (YAML уже валиден)"
-fi
+echo "ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ"
