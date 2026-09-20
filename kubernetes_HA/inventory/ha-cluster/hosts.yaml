@@ -1,0 +1,42 @@
+all:
+  vars:
+    ansible_user: ubuntu
+    ansible_ssh_common_args: >-
+      -o ProxyJump=ubuntu@84.201.156.49
+      -o StrictHostKeyChecking=accept-new
+  hosts:
+    master-1:
+      ansible_host: 10.10.1.10
+    master-2:
+      ansible_host: 10.10.1.11
+    master-3:
+      ansible_host: 10.10.1.12
+    worker-1:
+      ansible_host: 10.10.2.11
+    worker-2:
+      ansible_host: 10.10.2.12
+    worker-3:
+      ansible_host: 10.10.2.13
+    worker-4:
+      ansible_host: 10.10.2.14
+  children:
+    kube_control_plane:
+      hosts:
+        master-1:
+        master-2:
+        master-3:
+    kube_node:
+      hosts:
+        worker-1:
+        worker-2:
+        worker-3:
+        worker-4:
+    etcd:
+      hosts:
+        master-1:
+        master-2:
+        master-3:
+    k8s_cluster:
+      children:
+        kube_control_plane:
+        kube_node:

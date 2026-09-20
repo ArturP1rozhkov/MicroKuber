@@ -3,12 +3,12 @@ output "masters_public_ips" {
     for name, vm in yandex_compute_instance.master :
     name => vm.network_interface[0].nat_ip_address
   }
-  description = "Публичные IP всех master-нод (вариант A: по одному на каждого)"
+  description = "Публичные IP всех master-нод"
 }
 
-output "vip" {
-  value       = local.vip
-  description = "VRRP VIP — controlPlaneEndpoint для kubespray (loadbalancer_apiserver)"
+output "api_lb_ip" {
+  value       = local.api_lb_ip
+  description = "Внутренний IP NLB — controlPlaneEndpoint (loadbalancer_apiserver в kubespray)"
 }
 
 output "workers_internal_ips" {

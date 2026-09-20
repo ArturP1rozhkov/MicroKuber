@@ -6,3 +6,17 @@ tfplan
 terraform.tfvars
 rendered-*.yaml
 crash.log
+
+# External tool checkout: Kubespray is pinned separately and not vendored
+/deploy/kubespray/
+
+# Ansible runtime artifacts
+*.retry
+.ansible/
+
+# Private keys, kubeconfigs and local Kubernetes credentials
+*.pem
+*.key
+*.p12
+*.kubeconfig
+admin.conf

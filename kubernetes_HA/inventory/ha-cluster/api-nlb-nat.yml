@@ -1,0 +1,85 @@
+---
+- name: Route Kubernetes API ClusterIP locally on control-plane nodes
+  hosts: kube_control_plane
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Redirect Kubernetes Service ClusterIP from local processes to local API server
+      ansible.builtin.iptables:
+        table: nat
+        chain: OUTPUT
+        protocol: tcp
+        destination: 10.96.0.1
+        destination_port: "443"
+        jump: REDIRECT
+        to_ports: "6443"
+        action: insert
+        rule_num: 1
+
+    - name: Redirect Kubernetes Service ClusterIP from incoming host-network traffic to local API server
+      ansible.builtin.iptables:
+        table: nat
+        chain: PREROUTING
+        protocol: tcp
+        destination: 10.96.0.1
+        destination_port: "443"
+        jump: REDIRECT
+        to_ports: "6443"
+        action: insert
+        rule_num: 1
+
+    - name: Redirect NLB API endpoint to local API server on control-plane nodes
+      ansible.builtin.iptables:
+        table: nat
+        chain: OUTPUT
+        protocol: tcp
+        destination: 10.10.1.50
+        destination_port: "6443"
+        jump: REDIRECT
+        to_ports: "6443"
+        action: insert
+        rule_num: 1
+
+
+- name: Route Kubernetes API ClusterIP through internal NLB on worker nodes
+  hosts: kube_node
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: DNAT Kubernetes Service ClusterIP for local worker processes
+      ansible.builtin.iptables:
+        table: nat
+        chain: OUTPUT
+        protocol: tcp
+        destination: 10.96.0.1
+        destination_port: "443"
+        jump: DNAT
+        to_destination: 10.10.1.50:6443
+        action: insert
+        rule_num: 1
+
+    - name: DNAT Kubernetes Service ClusterIP for incoming host-network traffic
+      ansible.builtin.iptables:
+        table: nat
+        chain: PREROUTING
+        protocol: tcp
+        destination: 10.96.0.1
+        destination_port: "443"
+        jump: DNAT
+        to_destination: 10.10.1.50:6443
+        action: insert
+        rule_num: 1
+
+    - name: SNAT ClusterIP source address to worker IP for NLB response routing
+      ansible.builtin.iptables:
+        table: nat
+        chain: POSTROUTING
+        protocol: tcp
+        source: 10.96.0.1
+        destination: 10.10.1.50
+        destination_port: "6443"
+        jump: MASQUERADE
+        action: insert
+        rule_num: 1

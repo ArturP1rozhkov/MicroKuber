@@ -1,8 +1,3 @@
-locals {
-  vip       = "10.10.1.100"
-  vrrp_pass = "k8svrrp" # не более 8 символов — ограничение VRRP
-}
-
 resource "yandex_vpc_network" "k8s" {
   name = "k8s-course-net"
 }
@@ -22,12 +17,19 @@ resource "yandex_vpc_subnet" "private" {
   route_table_id = yandex_vpc_route_table.k8s.id
 }
 
+# NAT-шлюз: исходящий интернет приватной подсети воркеров.
+# Живёт в платформе и не зависит от состояния master-нод.
+resource "yandex_vpc_gateway" "nat" {
+  name = "k8s-nat-gateway"
+  shared_egress_gateway {}
+}
+
 resource "yandex_vpc_route_table" "k8s" {
-  name       = "k8s-private-via-vip"
+  name       = "k8s-private-via-natgw"
   network_id = yandex_vpc_network.k8s.id
 
   static_route {
     destination_prefix = "0.0.0.0/0"
-    next_hop_address   = local.vip
+    gateway_id         = yandex_vpc_gateway.nat.id
   }
 }

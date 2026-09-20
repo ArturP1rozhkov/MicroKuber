@@ -8,18 +8,13 @@ locals {
     master-2 = "10.10.1.11"
     master-3 = "10.10.1.12"
   }
-  master_priority = {
-    master-1 = 150
-    master-2 = 140
-    master-3 = 130
-  }
   workers = {
     worker-1 = "10.10.2.11"
     worker-2 = "10.10.2.12"
     worker-3 = "10.10.2.13"
     worker-4 = "10.10.2.14"
   }
-  nodemap = merge(local.masters, local.workers, { "k8s-vip" = local.vip })
+  nodemap = merge(local.masters, local.workers)
 }
 
 resource "yandex_compute_instance" "master" {
@@ -55,15 +50,9 @@ resource "yandex_compute_instance" "master" {
   metadata = {
     ssh-keys = "ubuntu:${trimspace(file(pathexpand(var.ssh_public_key_path)))}"
     user-data = templatefile("${path.module}/templates/cloud-init.yaml.tpl", {
-      hostname      = each.key
-      role          = "master"
-      nodemap       = local.nodemap
-      vip           = local.vip
-      node_ip       = each.value
-      vrrp_state    = each.key == "master-1" ? "MASTER" : "BACKUP"
-      vrrp_priority = local.master_priority[each.key]
-      vrrp_pass     = local.vrrp_pass
-      peers         = [for k, ip in local.masters : ip if k != each.key]
+      hostname = each.key
+      role     = "master"
+      nodemap  = local.nodemap
     })
   }
 
@@ -106,15 +95,9 @@ resource "yandex_compute_instance" "worker" {
   metadata = {
     ssh-keys = "ubuntu:${trimspace(file(pathexpand(var.ssh_public_key_path)))}"
     user-data = templatefile("${path.module}/templates/cloud-init.yaml.tpl", {
-      hostname      = each.key
-      role          = "worker"
-      nodemap       = local.nodemap
-      vip           = local.vip
-      node_ip       = each.value
-      vrrp_state    = "BACKUP"
-      vrrp_priority = 100
-      vrrp_pass     = local.vrrp_pass
-      peers         = []
+      hostname = each.key
+      role     = "worker"
+      nodemap  = local.nodemap
     })
   }
 

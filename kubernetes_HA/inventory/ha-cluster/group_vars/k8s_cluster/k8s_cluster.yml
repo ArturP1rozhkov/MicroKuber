@@ -1,0 +1,18 @@
+---
+
+# kube_version: v1.35.x
+
+loadbalancer_apiserver_localhost: false
+loadbalancer_apiserver:
+  address: 10.10.1.50
+  port: 6443
+
+container_manager: containerd     # условие задания
+kube_network_plugin: calico       # как в Задании 1 — для сравнимости отчётов
+
+# CIDR, идентичные Заданию 1
+kube_service_addresses: 10.96.0.0/12
+kube_pods_subnet: 192.168.0.0/16
+kube_network_node_prefix: 24
+# Required: API Service ClusterIP must be routed through the internal NLB
+kube_proxy_mode: iptables
