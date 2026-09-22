@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: app
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend   
+    spec:
+      containers:
+        - name: network-multitool
+          image: wbitt/network-multitool:latest
+          ports:
+            - containerPort: 80
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: app
+  labels:
+    app: frontend
+spec:
+  type: ClusterIP          
+  selector:
+    app: frontend          
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80             
+      targetPort: 80       
