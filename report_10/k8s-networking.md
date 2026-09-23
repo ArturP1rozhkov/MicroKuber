@@ -1,13 +1,3 @@
----
-type: Курс по DevOPS Home Work
-module: Kubernetes
-lesson_no: 10
-lesson_theme: Как работает сеть в K8s
----
-> [!bookmark]
->
-> **Домашнее задание: <%+ tp.file.title %>**
-
 
 ## Задание: Создать сетевую политику или несколько политик для обеспечения доступа
 
@@ -485,7 +475,3 @@ ssh ubuntu@111.88.243.38 kubectl -n app exec deploy/frontend -- curl -sS -m 3 ht
 - ya.ru: резолв прошёл, TCP 443 отвалился, что подтверждает что  «DNS разрешён / транспорт запрещён».
 
 
-> [!calendar] Дата
-> **Добавлено:** 2026-09-22  19:57
-> **Изменено: **<%+ tp.file.last_modified_date("YYYY-MM-DD HH:mm") %>
-> **Тема задания:** <%+ tp.file.title %>
