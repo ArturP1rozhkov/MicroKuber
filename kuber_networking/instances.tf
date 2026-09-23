@@ -38,9 +38,9 @@ resource "yandex_compute_instance" "master" {
   }
 
   network_interface {
-    subnet_id    = yandex_vpc_subnet.public.id
+    subnet_id  = yandex_vpc_subnet.public.id
     ip_address = local.master_ip
-    nat          = true             # ЕДИНСТВЕННЫЙ внешний IP кластера
+    nat        = true # ЕДИНСТВЕННЫЙ внешний IP кластера
   }
 
   metadata = {
@@ -87,9 +87,9 @@ resource "yandex_compute_instance" "worker" {
   }
 
   network_interface {
-    subnet_id    = yandex_vpc_subnet.private.id
+    subnet_id  = yandex_vpc_subnet.private.id
     ip_address = each.value
-    nat          = false            
+    nat        = false
   }
 
   metadata = {
