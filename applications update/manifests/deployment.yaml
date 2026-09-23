@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-multitool
+  labels:
+    app: nginx-multitool
+spec:
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 5         
+      maxUnavailable: 0   
+  selector:
+    matchLabels:
+      app: nginx-multitool
+  template:
+    metadata:
+      labels:
+        app: nginx-multitool
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.19      
+        ports:
+        - containerPort: 80
+          name: http
+      - name: multitool
+        image: wbitt/network-multitool
+        env:
+        - name: HTTP_PORT      # порт встроенного nginx multitool
+          value: "8080"        # 80 в этом поде уже занят основным nginx
+        ports:
+        - containerPort: 8080
+          name: mt-http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-multitool-svc
+spec:
+  selector:
+    app: nginx-multitool
+  ports:
+  - port: 80
+    targetPort: 80
+    name: nginx
+  - port: 8080
+    targetPort: 8080
+    name: multitool
